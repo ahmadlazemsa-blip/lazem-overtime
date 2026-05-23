@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>Lazem — Check In/Out</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#020617;--bg2:#0f172a;--bg3:#1e293b;--br:#334155;--tx:#f8fafc;--tx2:#94a3b8;--tx3:#64748b;--g:#10b981;--a:#f59e0b;--r:#ef4444;--b:#3b82f6;}
+body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;flex-direction:column}
+.page{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.page.on{display:flex}
+
+/* Login */
+.login-card{background:var(--bg2);border:1px solid var(--br);border-radius:16px;padding:28px;width:100%;max-width:360px}
+.logo{text-align:center;margin-bottom:24px}
+.logo img{width:80px;height:80px;object-fit:contain}
+.logo h1{font-size:20px;font-weight:700;margin-top:8px}
+.logo p{font-size:12px;color:var(--tx3);margin-top:4px}
+.lbl{display:block;font-size:12px;color:var(--tx2);margin-bottom:4px;font-weight:500}
+.inp{width:100%;background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:10px 14px;color:var(--tx);font-size:15px;outline:none;margin-bottom:14px}
+.inp:focus{border-color:var(--g)}
+.btn-full{width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:13px;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px}
+.err{background:#7f1d1d22;border:1px solid #991b1b;color:#fca5a5;border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:12px;text-align:center;display:none}
+
+/* Main */
+.main-page{padding:20px;width:100%;max-width:420px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.header h2{font-size:18px;font-weight:700}
+.logout-btn{background:none;border:1px solid var(--br);color:var(--tx3);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer}
+
+/* Status card */
+.status-card{background:var(--bg2);border:1px solid var(--br);border-radius:16px;padding:24px;margin-bottom:20px;text-align:center}
+.status-dot{width:16px;height:16px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}
+.status-label{font-size:14px;font-weight:600;vertical-align:middle}
+.status-time{font-size:13px;color:var(--tx3);margin-top:6px}
+.status-proj{font-size:12px;color:var(--tx3);margin-top:4px}
+
+/* Action button */
+.action-btn{width:100%;border:none;border-radius:14px;padding:20px;font-size:18px;font-weight:700;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .2s}
+.action-btn:disabled{opacity:.4;cursor:not-allowed}
+.checkin-btn{background:var(--g);color:#fff}
+.checkout-btn{background:var(--r);color:#fff}
+
+/* GPS status */
+.gps-status{font-size:12px;text-align:center;margin-bottom:16px;padding:8px;border-radius:8px}
+.gps-ok{background:#065f4618;color:#6ee7b7;border:1px solid #047857}
+.gps-err{background:#7f1d1d18;color:#fca5a5;border:1px solid #991b1b}
+.gps-checking{background:#1e293b;color:#94a3b8;border:1px solid #334155}
+
+/* History */
+.history-card{background:var(--bg2);border:1px solid var(--br);border-radius:12px;overflow:hidden}
+.history-title{padding:12px 16px;font-size:12px;font-weight:700;color:var(--tx2);border-bottom:1px solid var(--br);background:var(--bg3)}
+.history-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--br);font-size:13px}
+.history-row:last-child{border-bottom:none}
+
+/* Location setup (admin view) */
+.loc-card{background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:16px;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div class="page on" id="pg-login">
+  <div class="login-card">
+    <div class="logo">
+      <div style="width:70px;height:70px;border-radius:14px;background:#065f46;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto">🚑</div>
+      <h1>Lazem Medical</h1>
+      <p>Staff Check In / Out</p>
+    </div>
+    <label class="lbl">Username</label>
+    <input class="inp" id="l-user" placeholder="Enter username..." onkeydown="if(event.key==='Enter')doLogin()"/>
+    <label class="lbl">Password</label>
+    <input class="inp" id="l-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div class="err" id="l-err">Invalid username or password</div>
+    <button class="btn-full" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- MAIN PAGE -->
+<div class="page" id="pg-main">
+  <div class="main-page">
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <h2 id="m-name"></h2>
+        <div style="font-size:12px;color:var(--tx3)" id="m-proj"></div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+
+    <!-- Current status -->
+    <div class="status-card">
+      <div id="m-status-dot" class="status-dot" style="background:var(--tx3)"></div>
+      <span class="status-label" id="m-status-label">Not Checked In</span>
+      <div class="status-time" id="m-status-time"></div>
+      <div class="status-proj" id="m-clock" style="font-size:16px;font-weight:700;font-family:monospace;color:var(--tx);margin-top:8px"></div>
+    </div>
+
+    <!-- GPS -->
+    <div class="gps-status gps-checking" id="m-gps">📍 Checking location...</div>
+
+    <!-- Action buttons -->
+    <button class="action-btn checkin-btn" id="btn-checkin" onclick="doCheckIn()">✅ Check In</button>
+    <button class="action-btn checkout-btn" id="btn-checkout" onclick="doCheckOut()" style="display:none">🔴 Check Out</button>
+
+    <!-- Today's record -->
+    <div class="history-card" id="m-today"></div>
+
+    <!-- This week summary -->
+    <div style="margin-top:12px;background:var(--bg2);border:1px solid var(--br);border-radius:12px;padding:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:10px">📊 This Week</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center" id="m-week"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+var AUTH=null;
+var GPS={lat:null,lng:null,ok:true,watching:false};
+var CLOCK_INT=null;
+
+// Load staff from shared localStorage key
+function getStaff(){
+  try{var x=localStorage.getItem('lz_staff');return x?JSON.parse(x):[];}catch(e){return [];}
+}
+
+function getProjects(){
+  try{var x=localStorage.getItem('lz_ot');return x?JSON.parse(x):[];}catch(e){return [];}
+}
+
+function getRecords(){
+  try{var x=localStorage.getItem('lz_checkin');return x?JSON.parse(x):[];}catch(e){return [];}
+}
+
+function saveRecords(recs){
+  try{localStorage.setItem('lz_checkin',JSON.stringify(recs));}catch(e){}
+}
+
+// ── LOGIN ──
+function doLogin(){
+  var u=document.getElementById('l-user').value.trim().toLowerCase();
+  var p=document.getElementById('l-pass').value;
+  var err=document.getElementById('l-err');
+  err.style.display='none';
+  var staff=getStaff();
+  var found=staff.find(function(s){return s.username.toLowerCase()===u&&s.password===p;});
+  if(!found){err.style.display='block';return;}
+  AUTH=found;
+  document.getElementById('pg-login').classList.remove('on');
+  document.getElementById('pg-main').classList.add('on');
+  initMain();
+}
+
+function doLogout(){
+  AUTH=null;
+  if(CLOCK_INT)clearInterval(CLOCK_INT);
+  document.getElementById('pg-main').classList.remove('on');
+  document.getElementById('pg-login').classList.add('on');
+  document.getElementById('l-pass').value='';
+  if(GPS.watching&&navigator.geolocation)navigator.geolocation.clearWatch(GPS.watching);
+}
+
+// ── MAIN ──
+function initMain(){
+  var projs=getProjects();
+  var proj=projs.find(function(p){return p.id===AUTH.projId;});
+  document.getElementById('m-name').textContent='Hi, '+AUTH.name+' 👋';
+  document.getElementById('m-proj').textContent=proj?proj.name:'No project assigned';
+
+  // Start clock
+  updateClock();
+  CLOCK_INT=setInterval(updateClock,1000);
+
+  // Start GPS
+  startGPS(proj);
+
+  // Update UI
+  updateStatus();
+}
+
+function updateClock(){
+  var now=new Date();
+  document.getElementById('m-clock').textContent=
+    now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function startGPS(proj){
+  var gpsEl=document.getElementById('m-gps');
+  if(!navigator.geolocation){
+    gpsEl.className='gps-status gps-err';
+    gpsEl.textContent='❌ GPS not supported on this device';
+    GPS.ok=true; // Allow check-in without GPS
+    return;
+  }
+  gpsEl.className='gps-status gps-checking';
+  gpsEl.textContent='📍 Getting your location...';
+
+  GPS.watching=navigator.geolocation.watchPosition(
+    function(pos){
+      GPS.lat=pos.coords.latitude;
+      GPS.lng=pos.coords.longitude;
+      // Check if within range of project location
+      if(proj&&proj.lat&&proj.lng){
+        var dist=calcDist(GPS.lat,GPS.lng,proj.lat,proj.lng);
+        if(dist<=proj.radius||200){
+          GPS.ok=true;
+          gpsEl.className='gps-status gps-ok';
+          gpsEl.textContent='📍 You are at '+proj.name+' ('+Math.round(dist)+'m away)';
+        } else {
+          GPS.ok=false;
+          gpsEl.className='gps-status gps-err';
+          gpsEl.textContent='❌ You are '+Math.round(dist)+'m away from '+proj.name+' — must be on-site to check in';
+        }
+      } else {
+        GPS.ok=true;
+        gpsEl.className='gps-status gps-ok';
+        gpsEl.textContent='📍 Location: '+GPS.lat.toFixed(4)+', '+GPS.lng.toFixed(4);
+      }
+    },
+    function(err){
+      GPS.ok=true; // Allow if GPS fails
+      gpsEl.className='gps-status gps-err';
+      gpsEl.textContent='⚠️ Could not get location — check-in allowed';
+    },
+    {enableHighAccuracy:true,maximumAge:30000,timeout:15000}
+  );
+}
+
+function calcDist(lat1,lng1,lat2,lng2){
+  var R=6371000;
+  var dLat=(lat2-lat1)*Math.PI/180;
+  var dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function getTodayStr(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function getTodayRecord(){
+  var recs=getRecords();
+  var today=getTodayStr();
+  return recs.find(function(r){return r.username===AUTH.username&&r.date===today;});
+}
+
+function updateStatus(){
+  var rec=getTodayRecord();
+  var statusDot=document.getElementById('m-status-dot');
+  var statusLabel=document.getElementById('m-status-label');
+  var statusTime=document.getElementById('m-status-time');
+  var btnIn=document.getElementById('btn-checkin');
+  var btnOut=document.getElementById('btn-checkout');
+  var todayEl=document.getElementById('m-today');
+
+  if(!rec){
+    statusDot.style.background='var(--tx3)';
+    statusLabel.textContent='Not Checked In';
+    statusTime.textContent='';
+    btnIn.style.display='flex';
+    btnOut.style.display='none';
+    todayEl.innerHTML='<div style="padding:14px;text-align:center;color:var(--tx3);font-size:13px">No record today</div>';
+  } else if(rec.inTime&&!rec.outTime){
+    statusDot.style.background='var(--g)';
+    statusLabel.textContent='Checked In';
+    statusTime.textContent='Since '+rec.inTime;
+    btnIn.style.display='none';
+    btnOut.style.display='flex';
+    todayEl.innerHTML='<div class="history-title">Today</div>'
+      +'<div class="history-row"><span style="color:var(--tx3)">'+rec.date+'</span><span>In: <strong style="color:var(--g)">'+rec.inTime+'</strong></span><span style="color:var(--tx3)">Out: —</span></div>';
+  } else if(rec.inTime&&rec.outTime){
+    var hrs=calcHours(rec.inTime,rec.outTime);
+    statusDot.style.background='var(--b)';
+    statusLabel.textContent='Shift Complete';
+    statusTime.textContent=rec.inTime+' → '+rec.outTime+' ('+fmtH(hrs)+')';
+    btnIn.style.display='none';
+    btnOut.style.display='none';
+    todayEl.innerHTML='<div class="history-title">Today</div>'
+      +'<div class="history-row"><span style="color:var(--tx3)">'+rec.date+'</span><span>In: <strong style="color:var(--g)">'+rec.inTime+'</strong></span><span>Out: <strong style="color:var(--r)">'+rec.outTime+'</strong></span><span style="color:var(--a)"><strong>'+fmtH(hrs)+'</strong></span></div>';
+  }
+
+  // Week summary
+  var recs=getRecords();
+  var now=new Date();
+  var day=now.getDay();
+  var daysSinceSat=(day===6?0:day+1);
+  var sat=new Date(now);sat.setDate(now.getDate()-daysSinceSat);sat.setHours(0,0,0,0);
+  var fri=new Date(sat);fri.setDate(sat.getDate()+6);
+
+  var weekRecs=recs.filter(function(r){
+    if(r.username!==AUTH.username)return false;
+    var d=new Date(r.date);return d>=sat&&d<=fri&&r.outTime;
+  });
+  var wkH=weekRecs.reduce(function(s,r){return s+calcHours(r.inTime,r.outTime);},0);
+  var wkOT=Math.max(0,wkH-48);
+
+  document.getElementById('m-week').innerHTML=
+    '<div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--tx3)">Shifts</div><div style="font-size:20px;font-weight:700">'+weekRecs.length+'</div></div>'
+    +'<div style="background:var(--bg3);border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--tx3)">Hours</div><div style="font-size:20px;font-weight:700">'+fmtH(wkH)+'</div></div>'
+    +'<div style="background:'+(wkOT>0?'#78350f18':'var(--bg3)')+';border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--tx3)">OT</div><div style="font-size:20px;font-weight:700;color:'+(wkOT>0?'var(--a)':'var(--g)')+'">'+fmtH(wkOT)+'</div></div>';
+}
+
+function calcHours(inT,outT){
+  var ih=parseInt(inT.split(':')[0])+parseInt(inT.split(':')[1])/60;
+  var oh=parseInt(outT.split(':')[0])+parseInt(outT.split(':')[1])/60;
+  var d=oh-ih;if(d<0)d+=24;
+  return parseFloat(d.toFixed(2));
+}
+
+function fmtH(h){
+  var r=Math.floor(h),m=Math.round((h-r)*60);
+  return m?r+'H '+m+'m':r+'H';
+}
+
+function nowTime(){
+  var d=new Date();
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function doCheckIn(){
+  if(!GPS.ok&&GPS.lat!==null){
+    if(!confirm('You may not be at the project location. Check in anyway?'))return;
+  }
+  var rec=getTodayRecord();
+  if(rec&&rec.inTime){alert('Already checked in today');return;}
+  var recs=getRecords();
+  recs.push({
+    username:AUTH.username,
+    name:AUTH.name,
+    projId:AUTH.projId,
+    date:getTodayStr(),
+    inTime:nowTime(),
+    outTime:null,
+    lat:GPS.lat,
+    lng:GPS.lng
+  });
+  saveRecords(recs);
+  updateStatus();
+  // Also save to main system attendance
+  syncToMain();
+}
+
+function doCheckOut(){
+  var recs=getRecords();
+  var today=getTodayStr();
+  var idx=recs.findIndex(function(r){return r.username===AUTH.username&&r.date===today&&!r.outTime;});
+  if(idx<0){alert('No active check-in found');return;}
+  recs[idx].outTime=nowTime();
+  saveRecords(recs);
+  updateStatus();
+  syncToMain();
+}
+
+function syncToMain(){
+  // Sync check-in records to main system (lz_ot)
+  var recs=getRecords();
+  var projs=getProjects();
+  recs.filter(function(r){return r.outTime;}).forEach(function(r){
+    var proj=projs.find(function(p){return p.id===r.projId;});
+    if(!proj)return;
+    var exists=proj.entries.some(function(e){return e.empName===r.name&&e.date===r.date;});
+    if(exists)return;
+    var hrs=calcHours(r.inTime,r.outTime);
+    if(!proj.employees.includes(r.name))proj.employees.push(r.name);
+    proj.entries.push({
+      id:Date.now().toString(36)+Math.random().toString(36).slice(2,4),
+      empName:r.name,date:r.date,inT:r.inTime,outT:r.outTime,nd:false,h:hrs
+    });
+  });
+  try{localStorage.setItem('lz_ot',JSON.stringify(projs));}catch(e){}
+}
+
+// Auto-login if session saved
+(function(){
+  var saved=sessionStorage.getItem('lz_ci_user');
+  if(saved){
+    try{
+      AUTH=JSON.parse(saved);
+      document.getElementById('pg-login').classList.remove('on');
+      document.getElementById('pg-main').classList.add('on');
+      initMain();
+    }catch(e){sessionStorage.removeItem('lz_ci_user');}
+  }
+})();
+
+// Save session on login
+var _origLogin=doLogin;
+doLogin=function(){
+  _origLogin();
+  if(AUTH)sessionStorage.setItem('lz_ci_user',JSON.stringify(AUTH));
+};
+</script>
+</body>
+</html>
