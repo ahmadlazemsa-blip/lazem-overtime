@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Lazem — Overtime System</title>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- ══════════════════════ LOGIN ══════════════════════ -->
+<div id="login-page" style="position:fixed;inset:0;z-index:999;background:#020617;display:flex;align-items:center;justify-content:center">
+  <div style="background:var(--bg2);border:1px solid var(--br);border-radius:20px;padding:40px;width:380px;text-align:left">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;justify-content:center">
+      <img src="assets/logo.jpg" style="width:48px;height:48px;border-radius:10px;object-fit:contain"/>
+      <div><div style="font-size:18px;font-weight:700">Lazem</div><div style="font-size:11px;color:var(--tx3)">Overtime Management System</div></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label class="lbl">Username</label>
+      <input class="inp" id="l-user" placeholder="Enter username..." onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div style="margin-bottom:22px">
+      <label class="lbl">Password</label>
+      <input class="inp" type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div id="l-err" style="display:none;background:#7f1d1d22;border:1px solid #991b1b;color:#fca5a5;border-radius:8px;padding:8px 12px;font-size:12px;margin-bottom:14px;text-align:center"></div>
+    <button onclick="doLogin()" style="width:100%;background:var(--g);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='var(--g)'">Sign In</button>
+    <p style="font-size:11px;color:#475569;margin-top:18px;text-align:center">© 2026 Lazem Medical Services</p>
+  </div>
+</div>
+
+<!-- ══════════════════════ SIDEBAR ══════════════════════ -->
+<div id="sb" style="display:none">
+  <div class="logo">
+    <img src="assets/logo.jpg" style="width:40px;height:40px;border-radius:8px;object-fit:contain"/>
+    <div><h1>Lazem</h1><p>Overtime System</p></div>
+  </div>
+  <div class="user-info">
+    <div>
+      <div class="user-name" id="sb-uname"></div>
+      <div class="user-role" id="sb-urole"></div>
+    </div>
+    <button onclick="doLogout()" style="background:none;border:1px solid var(--br);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--tx3);cursor:pointer" title="Logout">↩</button>
+  </div>
+  <button class="nav on" id="n-dash"    onclick="go('dash')">📊 Dashboard</button>
+  <button class="nav"    id="n-proj"    onclick="go('proj')">🏗️ Projects</button>
+  <button class="nav"    id="n-att"     onclick="go('att')">📝 Attendance</button>
+  <button class="nav"    id="n-cal"     onclick="go('cal')">📅 Schedule</button>
+  <button class="nav"    id="n-emps"    onclick="go('emps')">👥 Employees</button>
+  <button class="nav"    id="n-rep"     onclick="go('rep')">📈 Reports</button>
+  <button class="nav"    id="n-alr"     onclick="go('alr')">⚠️ Alerts <span id="abadge" style="display:none;background:#dc2626;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-right:4px">0</span></button>
+  <button class="nav"    id="n-imp"     onclick="go('imp')">📥 Import Schedule</button>
+  <button class="nav"    id="n-att-imp" onclick="go('att-imp')">⏱️ Attendance Import</button>
+  <button class="nav"    id="n-users"   onclick="go('users')">👤 Staff Accounts</button>
+  <div class="sb-foot">
+    Week: Sat→Fri | Standard: 48h/week
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button onclick="exportData()" style="flex:1;background:var(--bg3);border:1px solid var(--br);border-radius:6px;padding:6px;font-size:11px;color:var(--tx3);cursor:pointer">💾 Export</button>
+      <label style="flex:1;background:var(--bg3);border:1px solid var(--br);border-radius:6px;padding:6px;font-size:11px;color:var(--tx3);cursor:pointer;text-align:center">
+        📂 Import<input type="file" accept=".json" onchange="importData(this)" style="display:none"/>
+      </label>
+    </div>
+    <button onclick="clearAllData()" style="width:100%;margin-top:6px;background:#7f1d1d22;border:1px solid #991b1b;border-radius:6px;padding:6px;font-size:11px;color:#fca5a5;cursor:pointer">🗑️ Clear All Data</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ MAIN ══════════════════════ -->
+<div id="main" style="display:none">
+
+<!-- DASHBOARD -->
+<div class="pg on" id="pg-dash">
+  <div class="ph"><h2>📊 Dashboard</h2><p id="d-date"></p></div>
+  <div class="stats">
+    <div class="stat">  <div class="stat-lbl">Total Employees</div><div class="stat-val" id="d-s1">0</div><div class="stat-sub">All projects</div></div>
+    <div class="stat a"><div class="stat-lbl">Overtime Hours</div><div class="stat-val" id="d-s2" style="color:var(--a)">0H</div><div class="stat-sub">Total accumulated</div></div>
+    <div class="stat b"><div class="stat-lbl">Total Work Hours</div><div class="stat-val" id="d-s3" style="color:var(--b)">0H</div><div class="stat-sub">All projects</div></div>
+    <div class="stat r"><div class="stat-lbl">Active Alerts</div><div class="stat-val" id="d-s4" style="color:var(--r)">0</div><div class="stat-sub">Need review</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">⚡ Overtime per Employee</div><div id="ch-emp" style="height:200px"></div></div>
+    <div class="card"><div class="card-title">🏗️ Projects Comparison</div><div id="ch-proj" style="height:200px"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">📅 Weekly Hours</div><div id="ch-week" style="height:200px"></div></div>
+    <div class="card"><div class="card-title">🥧 Shift Distribution</div><div id="ch-type" style="height:200px;display:flex;align-items:center;justify-content:center"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">🏆 Top OT Employees</div><div id="d-top"></div></div>
+    <div class="card"><div class="card-title">🏗️ Projects Overview</div><div id="d-proj"></div></div>
+  </div>
+  <div class="card"><div class="card-title">⚠️ Recent Alerts</div><div id="d-alr"></div></div>
+</div>
+
+<!-- PROJECTS -->
+<div class="pg" id="pg-proj">
+  <div class="ph"><h2>🏗️ Projects</h2><p>Add, edit and manage projects and employees</p></div>
+  <div class="card">
+    <div class="card-title">➕ Add New Project</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+      <div><label class="lbl">Project Name</label><input class="inp" id="p-name" placeholder="e.g. رماح Project..."/></div>
+      <div><label class="lbl">Supervisor</label><input class="inp" id="p-sup" placeholder="Supervisor name..."/></div>
+      <div>
+        <label class="lbl">Shift Type</label>
+        <select class="sel" id="p-type">
+          <option value="24H">24h Shift — 2 shifts/week</option>
+          <option value="12H">12h Shift — 4 shifts/week</option>
+          <option value="4x12">4x12 Rotation — No OT</option>
+        </select>
+      </div>
+      <button class="btn g" onclick="addProj()">+ Add</button>
+    </div>
+  </div>
+  <div id="p-list"></div>
+  <div class="card">
+    <div class="card-title">📍 GPS Project Locations (Check-in)</div>
+    <div id="p-locations"><p style="color:var(--tx3);font-size:13px">No projects yet</p></div>
+  </div>
+</div>
+
+<!-- ATTENDANCE -->
+<div class="pg" id="pg-att">
+  <div class="ph"><h2>📝 Attendance</h2><p>Record employee shifts and check-in/out</p></div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end">
+      <div><label class="lbl">Project</label><select class="sel" id="a-proj" onchange="onAProj()"><option value="">— Select —</option></select></div>
+      <div><label class="lbl">Employee</label><select class="sel" id="a-emp" onchange="onAEmp()"><option value="">— Select —</option></select></div>
+      <div><label class="lbl">Date</label><input type="date" class="inp" id="a-date"/></div>
+      <div><label class="lbl">Sign In</label><input type="time" class="inp" id="a-in" value="07:00" onchange="onATime()"/></div>
+      <div><label class="lbl">Check Out</label><input type="time" class="inp" id="a-out" value="07:00" onchange="onATime()"/></div>
+      <button class="btn g" onclick="addEntry()">Record</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn sl sm" id="nd-btn" onclick="togND()">🌙 Next Day Out</button>
+      <span id="a-dur" style="font-size:13px;color:var(--tx3)"></span>
+      <span id="a-snap" style="font-size:12px;color:var(--tx3)"></span>
+    </div>
+  </div>
+  <div id="a-recs"></div>
+</div>
+
+<!-- SCHEDULE -->
+<div class="pg" id="pg-cal">
+  <div class="ph"><h2>📅 Schedule</h2><p>Monthly shift calendar view</p></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <button class="btn sl sm" onclick="calMov(-1)">→ Previous</button>
+      <div style="text-align:center">
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px" id="cal-title"></div>
+        <select class="sel" id="cal-proj" onchange="drawCal()" style="width:auto;padding:4px 8px;font-size:12px"><option value="">All Projects</option></select>
+      </div>
+      <button class="btn sl sm" onclick="calMov(1)">← Next</button>
+    </div>
+    <div class="cal-head">
+      <div class="cal-dh">Sat</div><div class="cal-dh">Sun</div><div class="cal-dh">Mon</div>
+      <div class="cal-dh">Tue</div><div class="cal-dh">Wed</div><div class="cal-dh">Thu</div><div class="cal-dh">Fri</div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap" id="cal-leg"></div>
+  </div>
+</div>
+
+<!-- EMPLOYEES -->
+<div class="pg" id="pg-emps">
+  <div class="ph"><h2>👥 Employees</h2><p>Employee profiles and overtime statistics</p></div>
+  <div class="card">
+    <div class="card-title">➕ Add Employee to Project</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">
+      <div>
+        <label class="lbl">Project</label>
+        <select class="sel" id="emp-proj-sel" onchange="onEmpProjSel()"><option value="">— Select Project —</option></select>
+      </div>
+      <div>
+        <label class="lbl">Employee Name</label>
+        <input class="inp" id="emp-name-inp" placeholder="e.g. Ahmed Ali..." onkeydown="if(event.key==='Enter')quickAddEmp()"/>
+      </div>
+      <button class="btn g" onclick="quickAddEmp()">+ Add</button>
+    </div>
+    <div id="emp-proj-members" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:4px"></div>
+  </div>
+  <div id="emps-list"></div>
+</div>
+
+<!-- REPORTS -->
+<div class="pg" id="pg-rep">
+  <div class="ph"><h2>📈 Reports</h2><p>Detailed reports and comparisons</p></div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn g sm"  id="rt-detail"   onclick="repTab('detail')">📋 Details</button>
+    <button class="btn sl sm" id="rt-compare"  onclick="repTab('compare')">📊 Monthly Comparison</button>
+    <button class="btn sl sm" id="rt-dispatch" onclick="repTab('dispatch')">📋 Dispatch</button>
+    <button class="btn sl sm" id="rt-finger"   onclick="repTab('finger')">🔵 Fingerprint</button>
+  </div>
+  <div id="rep-tab-detail">
+    <div class="card">
+      <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+        <div><label class="lbl">Project</label><select class="sel" id="r-proj" onchange="drawRep()" style="width:170px"><option value="">All Projects</option></select></div>
+        <div><label class="lbl">Month</label>
+          <select class="sel" id="r-mon" onchange="drawRep()" style="width:140px">
+            <option value="">All Months</option>
+            <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+            <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+            <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+            <option value="9">October</option><option value="10">November</option><option value="11">December</option>
+          </select>
+        </div>
+        <button class="btn sl sm" onclick="window.print()">🖨️ Print</button>
+      </div>
+    </div>
+    <div class="g3" id="r-stats"></div>
+    <div class="card"><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Employee</th><th>Project</th><th>Type</th><th>Work Hours</th><th>Overtime</th><th>Total</th></tr></thead><tbody id="r-body"></tbody></table></div></div>
+  </div>
+  <div id="rep-tab-compare" style="display:none">
+    <div class="card" style="margin-bottom:12px"><div><label class="lbl">Project</label><select class="sel" id="cmp-proj" onchange="drawCompare()" style="width:200px"><option value="">All Projects</option></select></div></div>
+    <div id="cmp-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px"></div>
+    <div class="card" style="margin-bottom:12px"><div class="card-title">📊 Monthly Comparison Chart</div><div id="cmp-chart" style="height:220px"></div></div>
+    <div class="card"><div class="card-title">📋 Month by Month</div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Month</th><th>Work Hours</th><th>Overtime</th><th>Total</th><th>Change</th><th>Efficiency</th></tr></thead><tbody id="cmp-body"></tbody></table></div></div>
+  </div>
+  <div id="rep-tab-source" style="display:none">
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+        <div><label class="lbl">Project</label><select class="sel" id="src-proj" onchange="drawSourceRep()" style="width:180px"><option value="">All Projects</option></select></div>
+        <div><label class="lbl">Month</label>
+          <select class="sel" id="src-mon" onchange="drawSourceRep()" style="width:130px">
+            <option value="">All Months</option>
+            <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+            <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+            <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+            <option value="9">October</option><option value="10">November</option><option value="11">December</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="src-content"></div>
+  </div>
+</div>
+
+<!-- ALERTS -->
+<div class="pg" id="pg-alr">
+  <div class="ph"><h2>⚠️ Alerts</h2><p>Smart automatic alerts</p></div>
+  <div id="alr-list"></div>
+</div>
+
+<!-- IMPORT SCHEDULE -->
+<div class="pg" id="pg-imp">
+  <div class="ph"><h2>📥 Import Schedule</h2><p>Upload Excel file — auto-reads shifts</p></div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+      <div><label class="lbl">Project</label><select class="sel" id="imp-proj"><option value="">— Select project —</option></select></div>
+      <div>
+        <label class="lbl">Project Type</label>
+        <select class="sel" id="imp-type" onchange="updImpTypeDesc()">
+          <option value="24H_8">24h Shift — 8 shifts/month</option>
+          <option value="12H_ROTA">12h Rotation — 4 shifts + 4 off</option>
+          <option value="12H_6D">12h Shift — 6 days/week</option>
+        </select>
+        <div id="imp-type-desc" style="font-size:11px;color:var(--a);margin-top:6px;padding:6px 10px;background:#78350f18;border-radius:6px;border:1px solid #92400e;display:none"></div>
+      </div>
+    </div>
+    <div id="imp-drop" onclick="document.getElementById('imp-file').click()" style="border:2px dashed var(--br);border-radius:12px;padding:36px;text-align:center;cursor:pointer;background:var(--bg3)">
+      <div style="font-size:40px;margin-bottom:10px">📂</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Drag & Drop Excel file or click to select</div>
+      <div style="font-size:12px;color:var(--tx3)">Supports .xlsx</div>
+      <input type="file" id="imp-file" accept=".xlsx,.xls" style="display:none" onchange="impLoad(this)"/>
+    </div>
+    <div id="imp-info" style="display:none;margin-top:12px;background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:10px 14px;align-items:center;gap:10px">
+      <span style="font-size:20px">📗</span>
+      <div style="flex:1"><div id="imp-fname" style="font-size:13px;font-weight:600"></div><div id="imp-fmeta" style="font-size:11px;color:var(--tx3)"></div></div>
+      <button class="btn g sm" onclick="impProcess()" id="imp-btn">📊 Read Schedule</button>
+    </div>
+  </div>
+  <div id="imp-preview" style="display:none">
+    <div id="imp-summary" class="card" style="margin-bottom:12px"></div>
+    <div id="imp-bu-section" style="display:none;margin-bottom:12px">
+      <div class="card"><div style="font-size:13px;font-weight:700;color:var(--a);margin-bottom:12px">⚠️ BU Employees</div><div id="imp-bu-list"></div></div>
+    </div>
+    <div class="card" style="margin-bottom:12px"><div class="card-title">👥 Shifts Preview</div><div style="overflow-x:auto" id="imp-table"></div></div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn g" onclick="impConfirm()" id="imp-confirm-btn">✅ Import to System</button>
+      <button class="btn sl sm" onclick="impReset()">🔄 Reset</button>
+      <span id="imp-status" style="font-size:13px;color:var(--tx3)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ATTENDANCE IMPORT -->
+<div class="pg" id="pg-att-imp">
+  <div class="ph"><h2>⏱️ Attendance Import</h2><p>Upload attendance sheet</p></div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 180px;gap:12px;margin-bottom:14px">
+      <div><label class="lbl">Project</label><select class="sel" id="ai-proj"><option value="">— Select project —</option></select></div>
+      <div><label class="lbl">Name Separator</label><select class="sel" id="ai-sep"><option value="-">Dash ( - )</option><option value=",">Comma ( , )</option><option value="/">Slash ( / )</option></select></div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="lbl">Step 1 — Choose File</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:8px 16px;font-size:13px;color:var(--tx2);cursor:pointer">
+          📂 Choose File<input type="file" id="ai-file" accept=".xlsx,.xls,.csv" onchange="aiLoad(this)" style="display:none"/>
+        </label>
+        <span id="ai-fname" style="font-size:13px;color:var(--tx2)">No file chosen</span>
+      </div>
+    </div>
+    <div><label class="lbl">Step 2 — Calculate</label><button class="btn g" onclick="aiProcess()">📊 Calculate Hours</button></div>
+  </div>
+  <div id="ai-preview" style="display:none">
+    <div id="ai-summary" class="card" style="margin-bottom:12px"></div>
+    <div id="ai-results" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn g" onclick="aiConfirm()" id="ai-confirm-btn">✅ Import to System</button>
+      <button class="btn sl sm" onclick="aiReset()">🔄 Reset</button>
+      <span id="ai-status" style="font-size:13px;color:var(--tx3)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- STAFF ACCOUNTS -->
+<div class="pg" id="pg-users">
+  <div class="ph"><h2>👤 Staff Accounts</h2><p>Manage employee login accounts</p></div>
+  <div class="card" style="max-width:600px">
+    <div class="card-title">Add New Account</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div><label class="lbl">Full Name</label><input class="inp" id="u-name" placeholder="Employee name..."/></div>
+      <div><label class="lbl">Username</label><input class="inp" id="u-user" placeholder="e.g. ahmed.ali"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div><label class="lbl">Password</label><input class="inp" id="u-pass" placeholder="Password..."/></div>
+      <div><label class="lbl">Project</label><select class="sel" id="u-proj"><option value="">— Select —</option></select></div>
+    </div>
+    <button class="btn g" onclick="addStaff()">+ Add Account</button>
+  </div>
+  <div id="u-list" style="max-width:600px;margin-top:14px"></div>
+</div>
+
+</div><!-- end #main -->
+
+<!-- ══════════════════════ MODALS ══════════════════════ -->
+<div class="modal" id="m-edit-proj">
+  <div class="mbox">
+    <div class="mhead"><div class="mtitle">✏️ Edit Project</div><button class="mx" onclick="closeM('m-edit-proj')">✕</button></div>
+    <div style="display:grid;gap:14px">
+      <div><label class="lbl">Project Name</label><input class="inp" id="ep-name"/></div>
+      <div><label class="lbl">Supervisor</label><input class="inp" id="ep-sup"/></div>
+      <div><label class="lbl">Shift Type</label>
+        <select class="sel" id="ep-type">
+          <option value="24H">24h Shift</option>
+          <option value="12H">12h Shift</option>
+          <option value="4x12">4x12 Rotation</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn sl" onclick="closeM('m-edit-proj')">Cancel</button>
+        <button class="btn g" onclick="saveEditProj()">💾 Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="m-emp">
+  <div class="mbox">
+    <div class="mhead"><div class="mtitle">👥 Manage Employees</div><button class="mx" onclick="closeM('m-emp')">✕</button></div>
+    <div id="m-emp-body"></div>
+  </div>
+</div>
+
+<div class="modal" id="m-prof">
+  <div class="mbox lg">
+    <div class="mhead"><div class="mtitle" id="m-prof-title">Employee Profile</div><button class="mx" onclick="closeM('m-prof')">✕</button></div>
+    <div id="m-prof-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ SCRIPTS ══════════════════════ -->
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/projects.js"></script>
+<script src="js/attendance.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/employees.js"></script>
+<script src="js/reports.js"></script>
+<script src="js/data.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/import.js"></script>
+<script src="js/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "lazem-overtime-system",
+  "version": "3.0.0",
+  "description": "Lazem Overtime Management System — نظام إدارة الأوفر تايم",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . --listen 3000",
+    "dev": "npx live-server --port=3000 --open=index.html",
+    "serve": "python3 -m http.server 3000"
+  },
+  "keywords": [
+    "overtime",
+    "attendance",
+    "management",
+    "lazem"
+  ],
+  "author": "Lazem Medical Services",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "serve": "^14.2.0"
+  }
+}
